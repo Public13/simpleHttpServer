@@ -1,5 +1,11 @@
 # Simple http server
 
-run: mvn exac:java (or mvn package)
+запустить: mvn compile exec:java
 
-test: http://localhost:8080/data/somefile.txt
+автоматом создастся директория ./data с тестовыми файлами
+
+посмотреть список файлов: http://localhost:8080/ или http://localhost:8080/method=ls
+
+скачать файл: http://localhost:8080/file_1.txt
+
+небольшие тесты: mvn test
