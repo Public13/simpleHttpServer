@@ -1,85 +1,34 @@
 package http;
 
+import org.apache.log4j.Logger;
+
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SimpleServer
 {
-    public static void main(String[] args) throws Throwable
+    private static Logger log = Logger.getLogger(SimpleServer.class);
+
+    private static ExecutorService execPool = Executors.newFixedThreadPool(3);
+
+    public void start()
     {
-        ServerSocket ss = new ServerSocket(8080);
-        while(true)
+        try (ServerSocket serverSocket = new ServerSocket(8080))
         {
-            Socket s = ss.accept();
-            System.err.println("Client accepted");
-            new Thread(new SocketProcessor(s)).start();
-        }
-    }
-
-    private static class SocketProcessor implements Runnable
-    {
-
-        private Socket s;
-        private InputStream is;
-        private OutputStream os;
-
-        private SocketProcessor(Socket s) throws Throwable
-        {
-            this.s = s;
-            this.is = s.getInputStream();
-            this.os = s.getOutputStream();
-        }
-
-        public void run()
-        {
-            try
+            log.info("Server start");
+            while(!serverSocket.isClosed())
             {
-                readInputHeaders();
-                writeResponse("<html><body><h1>Hello from Habrahabr</h1></body></html>");
-            } catch (Throwable t)
-            {
-                /*do nothing*/
-            } finally
-            {
-                try
-                {
-                    s.close();
-                } catch (Throwable t)
-                {
-                    /*do nothing*/
-                }
+                Socket socket = serverSocket.accept();
+                execPool.execute(new SocketHandler(socket));
             }
-            System.err.println("Client processing finished");
-        }
-
-        private void writeResponse(String s) throws Throwable
+        }catch (Throwable e)
         {
-            String response = "HTTP/1.1 200 OK\r\n" +
-                    "Server: YarServer/2009-09-09\r\n" +
-                    "Content-Type: text/html\r\n" +
-                    "Content-Length: " + s.length() + "\r\n" +
-                    "Connection: close\r\n\r\n";
-            String result = response + s;
-            os.write(result.getBytes());
-            os.flush();
-        }
-
-        private void readInputHeaders() throws Throwable
+            log.error(e.getMessage(), e);
+        } finally
         {
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            while(true)
-            {
-                String s = br.readLine();
-                System.out.println(s);
-                if(s == null || s.trim().length() == 0)
-                {
-                    break;
-                }
-            }
+            execPool.shutdown();
         }
     }
 }
