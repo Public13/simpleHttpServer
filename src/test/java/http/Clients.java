@@ -20,8 +20,10 @@ public class Clients
     public static void main(String[] args) throws Throwable
     {
         log.info("Clients start");
-        for(int i = 0; i < 12; i++)
+        for(int i = 0; i < 12; i++) {
             execPool.execute(new Client(i));
+            //Thread.sleep(100);
+        }
         execPool.shutdown();
         execPool.awaitTermination(600, TimeUnit.SECONDS);
     }
@@ -53,7 +55,7 @@ public class Clients
                         "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n" +
                         "Accept-Language: ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3\n" +
                         "Accept-Encoding: gzip, deflate\n" +
-                        "Connection: close\nr" +
+                        "Connection: close\n" +
                         "Cache-Control: no-cache\n\r\n\r";
                 out.write(req);
                 out.flush();

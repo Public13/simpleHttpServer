@@ -24,7 +24,5 @@ public class ServerTest
         serverThread.start();
         Thread.sleep(1000);
         Clients.main(new String[0]);
-
-        serverThread.interrupt();
     }
 }

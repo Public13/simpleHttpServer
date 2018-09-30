@@ -1,7 +1,6 @@
 package http;
 
 import http.request.Request;
-import http.request.RequestHandler;
 import http.response.En_Status;
 import org.apache.log4j.Logger;
 
@@ -17,6 +16,7 @@ import java.util.stream.Collectors;
 public class SocketHandler implements Runnable
 {
     private static Logger log = Logger.getLogger(SocketHandler.class);
+    private static HttpHelper httpHelper = new HttpHelper();
 
     private Socket socket;
     private BufferedReader inReader;
@@ -40,7 +40,7 @@ public class SocketHandler implements Runnable
 
             if(request == null)
             {
-                writeTextResponse(En_Status.BAD_REQUEST, "");
+                httpHelper.writeTextResponse(En_Status.BAD_REQUEST, "", os);
                 log.info("<< return BAD_REQUEST");
                 return;
             }
@@ -48,7 +48,7 @@ public class SocketHandler implements Runnable
             String query = request.getQuery();
             if(query == null || query.isEmpty() || query.equals("/") || query.equalsIgnoreCase("/method=ls"))
             {
-                writeTextResponse(En_Status.OK, Files.list(dataDir).map(Path::getFileName).sorted().collect(Collectors.toList()).toString());
+                httpHelper.writeTextResponse(En_Status.OK, Files.list(dataDir).map(Path::getFileName).sorted().collect(Collectors.toList()).toString(), os);
                 log.info("<< return files list");
                 return;
             }
@@ -56,7 +56,7 @@ public class SocketHandler implements Runnable
             if(query.endsWith("/"))
             {
                 Path insideDir = Paths.get("data"+query);
-                writeTextResponse(En_Status.OK, Files.list(insideDir).map(Path::getFileName).sorted().collect(Collectors.toList()).toString());
+                httpHelper.writeTextResponse(En_Status.OK, Files.list(insideDir).map(Path::getFileName).sorted().collect(Collectors.toList()).toString(), os);
                 log.info("<< return files list");
                 return;
             }
@@ -67,12 +67,12 @@ public class SocketHandler implements Runnable
             Path filePath = dataDir.resolve(query);
             if(Files.notExists(filePath))
             {
-                writeTextResponse(En_Status.NOT_FOUND, "");
+                httpHelper.writeTextResponse(En_Status.NOT_FOUND, "", os);
                 log.info("<< return NOT_FOUND");
                 return;
             }
 
-            writeFileResponse(filePath);
+            httpHelper.writeFileResponse(filePath, os);
             log.info("<< return file");
 
         } catch (Throwable t)
@@ -92,32 +92,6 @@ public class SocketHandler implements Runnable
         log.info("Client processing finished");
     }
 
-
-    private void writeFileResponse(Path filePath) throws Throwable
-    {
-        String response = "HTTP/1.1 " + En_Status.OK.getHttpStatus() + "\r\n" +
-                "Server: PavelServer/2018-09-28\r\n" +
-                "Content-Type: application/octet-stream\r\n" +
-                "Content-Length: " + Files.size(filePath) + "\r\n" +
-                "Connection: close\r\n\r\n";
-        os.write(response.getBytes());
-        os.write(Files.readAllBytes(filePath));
-        os.flush();
-    }
-
-    private void writeTextResponse(En_Status status, String strResponse) throws Throwable
-    {
-        String response = "HTTP/1.1 " + status.getHttpStatus() + "\r\n" +
-                "Server: PavelServer/2018-09-28\r\n" +
-                "Content-Type: text/plain\r\n" +
-                "Content-Length: " + strResponse.length() + "\r\n" +
-                "Connection: close\r\n\r\n";
-        String result = response + strResponse;
-        os.write(result.getBytes());
-        os.flush();
-    }
-
-
     private Request readRequest() throws Throwable
     {
         StringBuilder buf = new StringBuilder();
@@ -132,6 +106,6 @@ public class SocketHandler implements Runnable
         }
         log.info(">> client request \n");
         log.info(buf.toString());
-        return RequestHandler.parseRequestString(buf.toString());
+        return httpHelper.parseRequestString(buf.toString());
     }
 }
